@@ -139,3 +139,34 @@ FROM Users u1, Friends f, Users u2, Reads r, Books b
 WHERE MATCH(u1-(f)->u2-(r)->b)
 AND u1.$node_id <> u2.$node_id;
 
+
+--shortest path
+WITH T1 AS
+(
+    SELECT u1.username AS Username,
+           STRING_AGG(u2.username, '->') WITHIN GROUP (GRAPH PATH) AS Friends,
+           LAST_VALUE(u2.username) WITHIN GROUP (GRAPH PATH) AS LastNode
+    FROM Users AS u1
+         ,Friends FOR PATH AS fo
+         ,Users FOR PATH AS u2
+    WHERE MATCH(SHORTEST_PATH(u1(-(fo)->u2)+))
+          AND u1.username = 'Alice'
+)
+SELECT Username, Friends
+FROM T1
+WHERE LastNode = 'David';
+
+WITH T1 AS
+(
+    SELECT u1.username AS Username,
+           STRING_AGG(c2.city_name, '->') WITHIN GROUP (GRAPH PATH) AS VisitedCities,
+           LAST_VALUE(c2.city_name) WITHIN GROUP (GRAPH PATH) AS LastCity
+    FROM Users AS u1
+         ,Visits FOR PATH AS v
+         ,Cities FOR PATH AS c2
+    WHERE MATCH(SHORTEST_PATH(u1(-(v)->c2)+))
+          AND u1.username = 'Alice'
+)
+SELECT Username, VisitedCities
+FROM T1
+WHERE LastCity = 'New York';
